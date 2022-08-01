@@ -16,6 +16,8 @@
 #include "dinbekbold_ttf.h"
 #include "dinbekbold_png.h"
 
+#include "bg_ogg.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +25,8 @@
 #include <malloc.h>
 #include <ogcsys.h>
 #include <gccore.h>
+#include <asndlib.h>
+#include "oggplayer.h"
 
 #define GRRLIB_WHITE   0xFFFFFFFF
 #define GRRLIB_BLACK   0x000000FF
@@ -189,6 +193,9 @@ int main(int argc, char **argv) {
     // Initialise the Wiimotes
     PAD_Init();
 
+	// Initialise the audio subsystem
+	ASND_Init();
+
     GRRLIB_texImg *spr_wall = GRRLIB_LoadTexture(wall_png);
     GRRLIB_texImg *spr_bear = GRRLIB_LoadTexture(bear_png);
     GRRLIB_texImg *spr_fire = GRRLIB_LoadTexture(fire_png);
@@ -207,6 +214,8 @@ int main(int argc, char **argv) {
 	struct Game* game = malloc(sizeof(struct Game));
 
     flicker_timer = ticks_to_secs(gettime());  
+
+    PlayOgg(bg_ogg, bg_ogg_size, 0, OGG_ONE_TIME);
 
     // Loop forever
     while(1) {
