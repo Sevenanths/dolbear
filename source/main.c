@@ -227,6 +227,7 @@ int main(int argc, char **argv) {
 			draw_title(bg_background, spr_button_start, bg_title, fnt_score, "Press START");
 
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) {
+				srand(gettime());
 				init_game(game);
 				game_mode = GAME;
 			}
