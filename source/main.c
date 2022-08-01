@@ -2,7 +2,8 @@
 #include <ogc/lwp_watchdog.h>   // Needed for gettime and ticks_to_millisecs
 #include <fat.h>
 
-#include "test_jpg_jpg.h"
+#include "background_png.h"
+#include "wall_png.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,11 @@
 #include <gccore.h>
 
 #define GRRLIB_WHITE   0xFFFFFFFF
+
+#define OBJECT_WIDTH 32
+#define OBJECT_HEIGHT 32
+#define GC_WIDTH 640
+#define GC_HEIGHT 480
 
 int cursor_x = 300;
 int cursor_y = 250;
@@ -23,7 +29,8 @@ int main(int argc, char **argv) {
     // Initialise the Wiimotes
     PAD_Init();
 
-    GRRLIB_texImg *tex_test_jpg = GRRLIB_LoadTexture(test_jpg_jpg);
+    GRRLIB_texImg *spr_wall = GRRLIB_LoadTexture(wall_png);
+    GRRLIB_texImg *bg_background = GRRLIB_LoadTexture(background_png);
 
     // Loop forever
     while(1) {
@@ -50,7 +57,27 @@ int main(int argc, char **argv) {
         // Place your drawing code here
         // ---------------------------------------------------------------------
 
-        GRRLIB_DrawImg(cursor_x, cursor_y, tex_test_jpg, 0, 1, 1, GRRLIB_WHITE);  // Draw a jpeg
+		GRRLIB_DrawImg(0, 0, bg_background, 0, 1, 1, GRRLIB_WHITE);
+
+		// Horizontal walls
+		for (int x = 0; x < 20; ++x)
+		{
+			// Top walls
+			GRRLIB_DrawImg(x * OBJECT_WIDTH, 0, spr_wall, 0, 1, 1, GRRLIB_WHITE);
+			// Bottom walls
+			GRRLIB_DrawImg(x * OBJECT_WIDTH, GC_HEIGHT - OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
+		}
+
+		// Vertical walls
+		for (int y = 0; y < 15; ++y)
+		{
+			// Top walls
+			GRRLIB_DrawImg(0, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
+			// Bottom walls
+			GRRLIB_DrawImg(GC_WIDTH - OBJECT_WIDTH, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
+		}
+
+        // Vertical walls
 
         GRRLIB_Render();  // Render the frame buffer to the TV
     }
