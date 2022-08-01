@@ -3,10 +3,14 @@
 #include <fat.h>
 
 #include "background_png.h"
+#include "title_png.h"
+
 #include "wall_png.h"
 #include "bear_png.h"
 #include "star_png.h"
 #include "fire_png.h"
+
+#include "button_start_png.h"
 
 #include "dinbekbold_ttf.h"
 
@@ -45,7 +49,7 @@ enum BearDirection {
 struct BearObject {
 	int type;
 	int direction;
-	int x;game
+	int x;
 	int y;
 };
 
@@ -88,6 +92,9 @@ int random_direction() {
 }
 
 int score = 0;
+int game_mode = TITLE;
+int flicker_timer = 0;
+bool show_button_prompt = true;
 
 void init_game(struct Game *game) {
 	/* 
@@ -132,188 +139,223 @@ int main(int argc, char **argv) {
     GRRLIB_texImg *spr_bear = GRRLIB_LoadTexture(bear_png);
     GRRLIB_texImg *spr_fire = GRRLIB_LoadTexture(fire_png);
     GRRLIB_texImg *spr_star = GRRLIB_LoadTexture(star_png);
+
+    GRRLIB_texImg *spr_button_start = GRRLIB_LoadTexture(button_start_png);
+
     GRRLIB_texImg *bg_background = GRRLIB_LoadTexture(background_png);
+    GRRLIB_texImg *bg_title = GRRLIB_LoadTexture(title_png);
 
     GRRLIB_ttfFont *fnt_score = GRRLIB_LoadTTF(dinbekbold_ttf, dinbekbold_ttf_size);
 
 	struct Game* game = malloc(sizeof(struct Game));
 
-    init_game(game);   
+    init_game(game);
+
+    flicker_timer = ticks_to_secs(gettime());  
 
     // Loop forever
     while(1) {
 
         PAD_ScanPads();  // Scan the Wiimotes
 
-        /*
-			Bear controls
-        */
+        if (game_mode == TITLE) {
+			GRRLIB_DrawImg(0, 0, bg_background, 0, 1, 1, GRRLIB_WHITE);
+			GRRLIB_DrawImg((GC_WIDTH / 2) - (bg_title->w / 2),
+						   (GC_HEIGHT / 2) - (bg_title->h / 2) - 30,
+						   bg_title, 0, 1, 1, GRRLIB_WHITE);
 
-        // If [HOME] was pressed on the first Wiimote, break out of the loop
-        if (PAD_ButtonsDown(0) & PAD_BUTTON_START)  break;
+			int start_prompt_x = 220;
+			int start_prompt_y = 380;
+			int start_prompt_size = 30;
 
-        if (PAD_StickY(0) > 18) {
-			game->bear.direction = BEAR_UP;
-		}
-		if (PAD_StickY(0) < -18) {
-			game->bear.direction = BEAR_DOWN;
-		}
-		if (PAD_StickX(0) > 18) {
-			game->bear.direction = BEAR_RIGHT;
-		}
-		if (PAD_StickX(0) < -18) {
-			game->bear.direction = BEAR_LEFT;
-		}
 
-		/* 
-			Bear collision (walls)
-		*/
-		if (game->bear.x - BEAR_SPEED <= OBJECT_HEIGHT) {
-			game->bear.direction = BEAR_RIGHT;
-		} else if (game->bear.x + BEAR_SPEED >= GC_WIDTH - (OBJECT_WIDTH * 2)) {
-			game->bear.direction = BEAR_LEFT;
-		} else if (game->bear.y - BEAR_SPEED <= OBJECT_HEIGHT) {
-			game->bear.direction = BEAR_DOWN;
-		} else if (game->bear.y + BEAR_SPEED >= GC_HEIGHT - (OBJECT_HEIGHT * 2)) {
-			game->bear.direction = BEAR_UP;
-		}
+			if (ticks_to_secs(gettime()) > flicker_timer + 0.5) {
+				show_button_prompt = !show_button_prompt;
+				flicker_timer = ticks_to_secs(gettime());
+			}
 
-		/*
-			Bear movement
-		*/
-		switch(game->bear.direction) {
-			case BEAR_UP:
-				game->bear.y -= BEAR_SPEED;
-				break;
-			case BEAR_DOWN:
-				game->bear.y += BEAR_SPEED;
-				break;
-			case BEAR_LEFT:
-				game->bear.x -= BEAR_SPEED;
-				break;
-			case BEAR_RIGHT:
-				game->bear.x += BEAR_SPEED;
-				break;
-		}
+			if (show_button_prompt) {
+				GRRLIB_DrawImg(start_prompt_x, start_prompt_y, spr_button_start, 0, 1, 1, GRRLIB_WHITE);
+				GRRLIB_PrintfTTF(start_prompt_x + spr_button_start->w + 10,
+								 start_prompt_y - (spr_button_start->h / 2) - 2,
+								 fnt_score, "Press START", start_prompt_size, GRRLIB_WHITE);
+			}
 
-		/*
-			Object movement
-		*/
-		for (int i = 0; i < NUM_OBJECTS * 2; ++i)
-		{
-			// Left wall collision
-			if (game->objects[i].x - OBJECT_SPEED <= OBJECT_WIDTH) {
-				if (game->objects[i].direction == UP_LEFT) {
-					game->objects[i].direction = UP_RIGHT;
-				} else if (game->objects[i].direction == DOWN_LEFT) {
-					game->objects[i].direction = DOWN_RIGHT;
+			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) {
+				game_mode = GAME;
+			}
+
+			if (PAD_ButtonsDown(0) & PAD_BUTTON_X) break;
+
+        }
+        else if (game_mode == GAME) {
+        	/*
+				Bear controls
+        	*/
+
+        	if (PAD_StickY(0) > 18) {
+				game->bear.direction = BEAR_UP;
+			}
+			if (PAD_StickY(0) < -18) {
+				game->bear.direction = BEAR_DOWN;
+			}
+			if (PAD_StickX(0) > 18) {
+				game->bear.direction = BEAR_RIGHT;
+			}
+			if (PAD_StickX(0) < -18) {
+				game->bear.direction = BEAR_LEFT;
+			}
+	
+			/* 
+				Bear collision (walls)
+			*/
+			if (game->bear.x - BEAR_SPEED <= OBJECT_HEIGHT) {
+				game->bear.direction = BEAR_RIGHT;
+			} else if (game->bear.x + BEAR_SPEED >= GC_WIDTH - (OBJECT_WIDTH * 2)) {
+				game->bear.direction = BEAR_LEFT;
+			} else if (game->bear.y - BEAR_SPEED <= OBJECT_HEIGHT) {
+				game->bear.direction = BEAR_DOWN;
+			} else if (game->bear.y + BEAR_SPEED >= GC_HEIGHT - (OBJECT_HEIGHT * 2)) {
+				game->bear.direction = BEAR_UP;
+			}
+	
+			/*
+				Bear movement
+			*/
+			switch(game->bear.direction) {
+				case BEAR_UP:
+					game->bear.y -= BEAR_SPEED;
+					break;
+				case BEAR_DOWN:
+					game->bear.y += BEAR_SPEED;
+					break;
+				case BEAR_LEFT:
+					game->bear.x -= BEAR_SPEED;
+					break;
+				case BEAR_RIGHT:
+					game->bear.x += BEAR_SPEED;
+					break;
+			}
+	
+			/*
+				Object movement
+			*/
+			for (int i = 0; i < NUM_OBJECTS * 2; ++i)
+			{
+				// Left wall collision
+				if (game->objects[i].x - OBJECT_SPEED <= OBJECT_WIDTH) {
+					if (game->objects[i].direction == UP_LEFT) {
+						game->objects[i].direction = UP_RIGHT;
+					} else if (game->objects[i].direction == DOWN_LEFT) {
+						game->objects[i].direction = DOWN_RIGHT;
+					}
+				// Right wall collision
+				} else if (game->objects[i].x + OBJECT_SPEED >= GC_WIDTH - (OBJECT_WIDTH * 2)) {
+					if (game->objects[i].direction == UP_RIGHT) {
+						game->objects[i].direction = UP_LEFT;
+					} else if (game->objects[i].direction == DOWN_RIGHT) {
+						game->objects[i].direction = DOWN_LEFT;
+					}
+				// Top wall collision
+				} else if (game->objects[i].y - OBJECT_SPEED <= OBJECT_HEIGHT) {
+					if (game->objects[i].direction == UP_LEFT) {
+						game->objects[i].direction = DOWN_LEFT;
+					} else if (game->objects[i].direction == UP_RIGHT) {
+						game->objects[i].direction = DOWN_RIGHT;
+					}
+				// Bottom wall
+				} else if (game->objects[i].y + OBJECT_SPEED >= GC_HEIGHT - (OBJECT_HEIGHT * 2)) {
+					if (game->objects[i].direction == DOWN_LEFT) {
+						game->objects[i].direction = UP_LEFT;
+					} else if (game->objects[i].direction == DOWN_RIGHT) {
+						game->objects[i].direction = UP_RIGHT;
+					}
 				}
-			// Right wall collision
-			} else if (game->objects[i].x + OBJECT_SPEED >= GC_WIDTH - (OBJECT_WIDTH * 2)) {
-				if (game->objects[i].direction == UP_RIGHT) {
-					game->objects[i].direction = UP_LEFT;
-				} else if (game->objects[i].direction == DOWN_RIGHT) {
-					game->objects[i].direction = DOWN_LEFT;
-				}
-			// Top wall collision
-			} else if (game->objects[i].y - OBJECT_SPEED <= OBJECT_HEIGHT) {
+	
 				if (game->objects[i].direction == UP_LEFT) {
-					game->objects[i].direction = DOWN_LEFT;
+					game->objects[i].x -= OBJECT_SPEED;
+					game->objects[i].y -= OBJECT_SPEED;
 				} else if (game->objects[i].direction == UP_RIGHT) {
-					game->objects[i].direction = DOWN_RIGHT;
-				}
-			// Bottom wall
-			} else if (game->objects[i].y + OBJECT_SPEED >= GC_HEIGHT - (OBJECT_HEIGHT * 2)) {
-				if (game->objects[i].direction == DOWN_LEFT) {
-					game->objects[i].direction = UP_LEFT;
+					game->objects[i].x += OBJECT_SPEED;
+					game->objects[i].y -= OBJECT_SPEED;
+				} else if (game->objects[i].direction == DOWN_LEFT) {
+					game->objects[i].x -= OBJECT_SPEED;
+					game->objects[i].y += OBJECT_SPEED;
 				} else if (game->objects[i].direction == DOWN_RIGHT) {
-					game->objects[i].direction = UP_RIGHT;
+					game->objects[i].x += OBJECT_SPEED;
+					game->objects[i].y += OBJECT_SPEED;
 				}
 			}
-
-			if (game->objects[i].direction == UP_LEFT) {
-				game->objects[i].x -= OBJECT_SPEED;
-				game->objects[i].y -= OBJECT_SPEED;
-			} else if (game->objects[i].direction == UP_RIGHT) {
-				game->objects[i].x += OBJECT_SPEED;
-				game->objects[i].y -= OBJECT_SPEED;
-			} else if (game->objects[i].direction == DOWN_LEFT) {
-				game->objects[i].x -= OBJECT_SPEED;
-				game->objects[i].y += OBJECT_SPEED;
-			} else if (game->objects[i].direction == DOWN_RIGHT) {
-				game->objects[i].x += OBJECT_SPEED;
-				game->objects[i].y += OBJECT_SPEED;
+	
+			/* 
+				Bear and object collision
+			*/
+			for (int i = 0; i < NUM_OBJECTS * 2; ++i)
+			{
+				// All hail the mighty bounding box calculation 
+				// I ported this from my LUA code in 2015! It might just work!
+				if (game->bear.x < game->objects[i].x + OBJECT_WIDTH &&
+					game->bear.x + OBJECT_WIDTH > game->objects[i].x &&
+					game->bear.y < game->objects[i].y + OBJECT_HEIGHT &&
+					OBJECT_HEIGHT + game->bear.y > game->objects[i].y) {
+	
+					game->objects[i].x = random_coordinate_x();
+					game->objects[i].y = random_coordinate_y();
+					game->objects[i].direction = random_direction();
+	
+					if (game->objects[i].type == FIRE) {
+						score -= 1000;
+					} else if (game->objects[i].type == STAR) {
+						score += 1000;
+					}
+				}
 			}
-		}
-
-		/* 
-			Bear and object collision
-		*/
-		for (int i = 0; i < NUM_OBJECTS * 2; ++i)
-		{
-			// All hail the mighty bounding box calculation 
-			// I ported this from my LUA code in 2015! It might just work!
-			if (game->bear.x < game->objects[i].x + OBJECT_WIDTH &&
-				game->bear.x + OBJECT_WIDTH > game->objects[i].x &&
-				game->bear.y < game->objects[i].y + OBJECT_HEIGHT &&
-				OBJECT_HEIGHT + game->bear.y > game->objects[i].y) {
-
-				game->objects[i].x = random_coordinate_x();
-				game->objects[i].y = random_coordinate_y();
-				game->objects[i].direction = random_direction();
-
+	
+        	// ---------------------------------------------------------------------
+        	// Place your drawing code here
+        	// ---------------------------------------------------------------------
+	
+			/*
+				Draw window
+			*/
+			GRRLIB_DrawImg(0, 0, bg_background, 0, 1, 1, GRRLIB_WHITE);
+	
+			// Horizontal walls
+			for (int x = 0; x < 20; ++x)
+			{
+				// Top walls
+				GRRLIB_DrawImg(x * OBJECT_WIDTH, 0, spr_wall, 0, 1, 1, GRRLIB_WHITE);
+				// Bottom walls
+				GRRLIB_DrawImg(x * OBJECT_WIDTH, GC_HEIGHT - OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
+			}
+	
+			// Vertical walls
+			for (int y = 0; y < 15; ++y)
+			{
+				// Top walls
+				GRRLIB_DrawImg(0, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
+				// Bottom walls
+				GRRLIB_DrawImg(GC_WIDTH - OBJECT_WIDTH, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
+			}
+	
+			// Draw bear
+			GRRLIB_DrawImg(game->bear.x, game->bear.y, spr_bear, 0, 1, 1, GRRLIB_WHITE);
+	
+			// Draw objects
+			for (int i = 0; i < NUM_OBJECTS * 2; ++i)
+			{
 				if (game->objects[i].type == FIRE) {
-					score -= 1000;
+					GRRLIB_DrawImg(game->objects[i].x, game->objects[i].y, spr_fire, 0, 1, 1, GRRLIB_WHITE);
 				} else if (game->objects[i].type == STAR) {
-					score += 1000;
+					GRRLIB_DrawImg(game->objects[i].x, game->objects[i].y, spr_star, 0, 1, 1, GRRLIB_WHITE);
 				}
 			}
+	
+			wchar_t score_wchar[16];
+	
+			// Draw score
+			//GRRLIB_PrintfTTFW(0, 0, fnt_score, score_wchar, 12, GRRLIB_WHITE);
 		}
-
-        // ---------------------------------------------------------------------
-        // Place your drawing code here
-        // ---------------------------------------------------------------------
-
-		/*
-			Draw window
-		*/
-		GRRLIB_DrawImg(0, 0, bg_background, 0, 1, 1, GRRLIB_WHITE);
-
-		// Horizontal walls
-		for (int x = 0; x < 20; ++x)
-		{
-			// Top walls
-			GRRLIB_DrawImg(x * OBJECT_WIDTH, 0, spr_wall, 0, 1, 1, GRRLIB_WHITE);
-			// Bottom walls
-			GRRLIB_DrawImg(x * OBJECT_WIDTH, GC_HEIGHT - OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
-		}
-
-		// Vertical walls
-		for (int y = 0; y < 15; ++y)
-		{
-			// Top walls
-			GRRLIB_DrawImg(0, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
-			// Bottom walls
-			GRRLIB_DrawImg(GC_WIDTH - OBJECT_WIDTH, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
-		}
-
-		// Draw bear
-		GRRLIB_DrawImg(game->bear.x, game->bear.y, spr_bear, 0, 1, 1, GRRLIB_WHITE);
-
-		// Draw objects
-		for (int i = 0; i < NUM_OBJECTS * 2; ++i)
-		{
-			if (game->objects[i].type == FIRE) {
-				GRRLIB_DrawImg(game->objects[i].x, game->objects[i].y, spr_fire, 0, 1, 1, GRRLIB_WHITE);
-			} else if (game->objects[i].type == STAR) {
-				GRRLIB_DrawImg(game->objects[i].x, game->objects[i].y, spr_star, 0, 1, 1, GRRLIB_WHITE);
-			}
-		}
-
-		wchar_t score_wchar[16];
-
-		// Draw score
-		//GRRLIB_PrintfTTFW(0, 0, fnt_score, score_wchar, 12, GRRLIB_WHITE);
 
         GRRLIB_Render();  // Render the frame buffer to the TV
     }
