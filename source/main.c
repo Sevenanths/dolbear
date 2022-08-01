@@ -8,9 +8,12 @@
 #include "star_png.h"
 #include "fire_png.h"
 
+#include "dinbekbold_ttf.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 #include <malloc.h>
 #include <ogcsys.h>
 #include <gccore.h>
@@ -74,6 +77,8 @@ int random_direction() {
 	return random_integer(1, 4);
 }
 
+int score = 0;
+
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
     GRRLIB_Init();
@@ -86,6 +91,8 @@ int main(int argc, char **argv) {
     GRRLIB_texImg *spr_fire = GRRLIB_LoadTexture(fire_png);
     GRRLIB_texImg *spr_star = GRRLIB_LoadTexture(star_png);
     GRRLIB_texImg *bg_background = GRRLIB_LoadTexture(background_png);
+
+    GRRLIB_ttfFont *fnt_score = GRRLIB_LoadTTF(dinbekbold_ttf, dinbekbold_ttf_size);
 
     /* 
     	Bear
@@ -239,6 +246,12 @@ int main(int argc, char **argv) {
 				objects[i].x = random_coordinate_x();
 				objects[i].y = random_coordinate_y();
 				objects[i].direction = random_direction();
+
+				if (objects[i].type == FIRE) {
+					score -= 1000;
+				} else if (objects[i].type == STAR) {
+					score += 1000;
+				}
 			}
 		}
 
@@ -281,6 +294,11 @@ int main(int argc, char **argv) {
 				GRRLIB_DrawImg(objects[i].x, objects[i].y, spr_star, 0, 1, 1, GRRLIB_WHITE);
 			}
 		}
+
+		wchar_t score_wchar[16];
+
+		// Draw score
+		//GRRLIB_PrintfTTFW(0, 0, fnt_score, score_wchar, 12, GRRLIB_WHITE);
 
         GRRLIB_Render();  // Render the frame buffer to the TV
     }
