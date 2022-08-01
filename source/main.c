@@ -127,6 +127,8 @@ void init_game(struct Game *game) {
     	game->objects[i].y = random_coordinate_y();
     	game->objects[i].direction = random_direction();
     }
+
+    score = 0;
 }
 
 void draw_title(GRRLIB_texImg *bg_background,
@@ -181,8 +183,6 @@ int main(int argc, char **argv) {
 
 	struct Game* game = malloc(sizeof(struct Game));
 
-    init_game(game);
-
     flicker_timer = ticks_to_secs(gettime());  
 
     // Loop forever
@@ -194,10 +194,18 @@ int main(int argc, char **argv) {
 			draw_title(bg_background, spr_button_start, bg_title, fnt_score, "Press START");
 
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) {
+				init_game(game);
 				game_mode = GAME;
 			}
 
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_X) break;
+        }
+        else if (game_mode == GAME_OVER) {
+			draw_title(bg_background, spr_button_start, bg_game_over, fnt_score, "Press START");
+
+			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) {
+				game_mode = TITLE;
+			}
         }
         else if (game_mode == GAME) {
         	/*
@@ -315,7 +323,7 @@ int main(int argc, char **argv) {
 					game->objects[i].direction = random_direction();
 	
 					if (game->objects[i].type == FIRE) {
-						score -= 1000;
+						game_mode = GAME_OVER;
 					} else if (game->objects[i].type == STAR) {
 						score += 1000;
 					}
