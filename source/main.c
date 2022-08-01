@@ -63,11 +63,11 @@ int random_integer(int minimum_number, int max_number) {
 }
 
 int random_coordinate_x() {
-	return random_integer(OBJECT_WIDTH, GC_WIDTH - OBJECT_WIDTH);
+	return random_integer(OBJECT_WIDTH, GC_WIDTH - (OBJECT_WIDTH * 2));
 }
 
 int random_coordinate_y() {
-	return random_integer(OBJECT_HEIGHT, GC_HEIGHT - OBJECT_HEIGHT);
+	return random_integer(OBJECT_HEIGHT, GC_HEIGHT - (OBJECT_WIDTH * 2));
 }
 
 int random_direction() {
