@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
 
     flicker_timer = ticks_to_secs(gettime());  
 
-    PlayOgg(bg_ogg, bg_ogg_size, 0, OGG_ONE_TIME);
+    PlayOgg(bg_ogg, bg_ogg_size, 0, OGG_INFINITE_TIME);
 
     // Loop forever
     while(1) {
