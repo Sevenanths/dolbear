@@ -118,12 +118,12 @@ void init_game(struct Game *game) {
     /*
 		Objects
     */
-    /* Set the first NUM_OBJECTS objects to fire */
+    /* Set the first group of NUM_OBJECTS objects to fire */
     for (int i = 0; i < NUM_OBJECTS; ++i)
     {
     	game->objects[i].type = FIRE;
     }
-    /* Set the first NUM_OBJECTS objects to fire */
+    /* Set the second group op NUM_OBJECTS objects to fire */
     for (int i = NUM_OBJECTS; i < 2 * NUM_OBJECTS; ++i)
     {
     	game->objects[i].type = STAR;
@@ -157,6 +157,7 @@ void draw_title(GRRLIB_texImg *bg_background,
 	int start_prompt_y = 380;
 	int start_prompt_size = 30;
 
+	// Every 0.5 seconds, we show/hide the button prompt
 	if (ticks_to_secs(gettime()) > flicker_timer + 0.5) {
 		show_button_prompt = !show_button_prompt;
 		flicker_timer = ticks_to_secs(gettime());
@@ -174,16 +175,20 @@ void draw_score(int score, GRRLIB_texImg *fnt_score_tile) {
 	char str_score[32];
 	itoa(score, str_score, 10);
 
+	// We use a tileset font in order to be able to pre-calculate the score's width
+	// This way we can actually center it on screen
 	int score_width = strlen(str_score) * FONT_TILESET_WIDTH;
 
 	// Draw score
 	int score_x = (GC_WIDTH / 2) - (score_width / 2);
 	int score_y = 1;
 
+	// The first four calls are used to draw the font outline
 	GRRLIB_Printf(score_x + 1, score_y + 1, fnt_score_tile, GRRLIB_BLACK, 1, str_score);
 	GRRLIB_Printf(score_x - 1, score_y + 1, fnt_score_tile, GRRLIB_BLACK, 1, str_score);
 	GRRLIB_Printf(score_x - 1, score_y - 1, fnt_score_tile, GRRLIB_BLACK, 1, str_score);
 	GRRLIB_Printf(score_x + 1, score_y - 1, fnt_score_tile, GRRLIB_BLACK, 1, str_score);
+	// The final call is the actual centred font
 	GRRLIB_Printf(score_x, score_y, fnt_score_tile, GRRLIB_WHITE, 1, str_score);
 }
 
@@ -197,6 +202,7 @@ int main(int argc, char **argv) {
 	// Initialise the audio subsystem
 	ASND_Init();
 
+	// Sprite loading
     GRRLIB_texImg *spr_wall = GRRLIB_LoadTexture(wall_png);
     GRRLIB_texImg *spr_bear = GRRLIB_LoadTexture(bear_png);
     GRRLIB_texImg *spr_fire = GRRLIB_LoadTexture(fire_png);
@@ -208,10 +214,12 @@ int main(int argc, char **argv) {
     GRRLIB_texImg *bg_title = GRRLIB_LoadTexture(title_png);
     GRRLIB_texImg *bg_game_over = GRRLIB_LoadTexture(game_over_png);
 
+    // Font loading
     GRRLIB_ttfFont *fnt_score = GRRLIB_LoadTTF(dinbekbold_ttf, dinbekbold_ttf_size);
     GRRLIB_texImg *fnt_score_tile = GRRLIB_LoadTexture(dinbekbold_png);
     GRRLIB_InitTileSet(fnt_score_tile, FONT_TILESET_WIDTH, 30, 32);
 
+    // Create a game instance
 	struct Game* game = malloc(sizeof(struct Game));
 
     flicker_timer = ticks_to_secs(gettime());  
@@ -221,7 +229,7 @@ int main(int argc, char **argv) {
     // Loop forever
     while(1) {
 
-        PAD_ScanPads();  // Scan the Wiimotes
+        PAD_ScanPads();  // Scan for GameCube controller input
 
         if (game_mode == TITLE) {
 			draw_title(bg_background, spr_button_start, bg_title, fnt_score, "Press START");
@@ -318,7 +326,7 @@ int main(int argc, char **argv) {
 					} else if (game->objects[i].direction == UP_RIGHT) {
 						game->objects[i].direction = DOWN_RIGHT;
 					}
-				// Bottom wall
+				// Bottom wall collision
 				} else if (game->objects[i].y + OBJECT_SPEED >= GC_HEIGHT - (OBJECT_HEIGHT * 2)) {
 					if (game->objects[i].direction == DOWN_LEFT) {
 						game->objects[i].direction = UP_LEFT;
@@ -387,9 +395,9 @@ int main(int argc, char **argv) {
 			// Vertical walls
 			for (int y = 0; y < 15; ++y)
 			{
-				// Top walls
+				// Left walls
 				GRRLIB_DrawImg(0, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
-				// Bottom walls
+				// Right walls
 				GRRLIB_DrawImg(GC_WIDTH - OBJECT_WIDTH, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
 			}
 	
