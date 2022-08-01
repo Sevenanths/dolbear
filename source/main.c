@@ -4,6 +4,7 @@
 
 #include "background_png.h"
 #include "title_png.h"
+#include "game_over_png.h"
 
 #include "wall_png.h"
 #include "bear_png.h"
@@ -128,6 +129,36 @@ void init_game(struct Game *game) {
     }
 }
 
+void draw_title(GRRLIB_texImg *bg_background,
+				GRRLIB_texImg *spr_button_start,
+				GRRLIB_texImg *bg_overlay,
+				GRRLIB_ttfFont *fnt_score,
+				char* message) {
+	// Draw background
+	GRRLIB_DrawImg(0, 0, bg_background, 0, 1, 1, GRRLIB_WHITE);
+	// Draw overlay graphic
+	GRRLIB_DrawImg((GC_WIDTH / 2) - (bg_overlay->w / 2),
+				   (GC_HEIGHT / 2) - (bg_overlay->h / 2) - 30,
+				   bg_overlay, 0, 1, 1, GRRLIB_WHITE);
+
+	// Draw message 
+	int start_prompt_x = 220;
+	int start_prompt_y = 380;
+	int start_prompt_size = 30;
+
+	if (ticks_to_secs(gettime()) > flicker_timer + 0.5) {
+		show_button_prompt = !show_button_prompt;
+		flicker_timer = ticks_to_secs(gettime());
+	}
+
+	if (show_button_prompt) {
+		GRRLIB_DrawImg(start_prompt_x, start_prompt_y, spr_button_start, 0, 1, 1, GRRLIB_WHITE);
+		GRRLIB_PrintfTTF(start_prompt_x + spr_button_start->w + 10,
+						 start_prompt_y - (spr_button_start->h / 2) - 2,
+						 fnt_score, message, start_prompt_size, GRRLIB_WHITE);
+	}
+}
+
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
     GRRLIB_Init();
@@ -144,6 +175,7 @@ int main(int argc, char **argv) {
 
     GRRLIB_texImg *bg_background = GRRLIB_LoadTexture(background_png);
     GRRLIB_texImg *bg_title = GRRLIB_LoadTexture(title_png);
+    GRRLIB_texImg *bg_game_over = GRRLIB_LoadTexture(game_over_png);
 
     GRRLIB_ttfFont *fnt_score = GRRLIB_LoadTTF(dinbekbold_ttf, dinbekbold_ttf_size);
 
@@ -159,34 +191,13 @@ int main(int argc, char **argv) {
         PAD_ScanPads();  // Scan the Wiimotes
 
         if (game_mode == TITLE) {
-			GRRLIB_DrawImg(0, 0, bg_background, 0, 1, 1, GRRLIB_WHITE);
-			GRRLIB_DrawImg((GC_WIDTH / 2) - (bg_title->w / 2),
-						   (GC_HEIGHT / 2) - (bg_title->h / 2) - 30,
-						   bg_title, 0, 1, 1, GRRLIB_WHITE);
-
-			int start_prompt_x = 220;
-			int start_prompt_y = 380;
-			int start_prompt_size = 30;
-
-
-			if (ticks_to_secs(gettime()) > flicker_timer + 0.5) {
-				show_button_prompt = !show_button_prompt;
-				flicker_timer = ticks_to_secs(gettime());
-			}
-
-			if (show_button_prompt) {
-				GRRLIB_DrawImg(start_prompt_x, start_prompt_y, spr_button_start, 0, 1, 1, GRRLIB_WHITE);
-				GRRLIB_PrintfTTF(start_prompt_x + spr_button_start->w + 10,
-								 start_prompt_y - (spr_button_start->h / 2) - 2,
-								 fnt_score, "Press START", start_prompt_size, GRRLIB_WHITE);
-			}
+			draw_title(bg_background, spr_button_start, bg_title, fnt_score, "Press START");
 
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) {
 				game_mode = GAME;
 			}
 
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_X) break;
-
         }
         else if (game_mode == GAME) {
         	/*
