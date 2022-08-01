@@ -56,6 +56,10 @@ int main(int argc, char **argv) {
 
         PAD_ScanPads();  // Scan the Wiimotes
 
+        /*
+			Bear controls
+        */
+
         // If [HOME] was pressed on the first Wiimote, break out of the loop
         if (PAD_ButtonsDown(0) & PAD_BUTTON_START)  break;
 
@@ -70,6 +74,19 @@ int main(int argc, char **argv) {
 		}
 		if (PAD_StickX(0) < -18) {
 			obj_bear->direction = BEAR_LEFT;
+		}
+
+		/* 
+			Bear collision (walls)
+		*/
+		if (obj_bear->x - BEAR_SPEED <= OBJECT_HEIGHT) {
+			obj_bear->direction = BEAR_RIGHT;
+		} else if (obj_bear->x + BEAR_SPEED >= GC_WIDTH - (OBJECT_WIDTH * 2)) {
+			obj_bear->direction = BEAR_LEFT;
+		} else if (obj_bear->y - BEAR_SPEED <= OBJECT_HEIGHT) {
+			obj_bear->direction = BEAR_DOWN;
+		} else if (obj_bear->y + BEAR_SPEED >= GC_HEIGHT - (OBJECT_HEIGHT * 2)) {
+			obj_bear->direction = BEAR_UP;
 		}
 
 		/*
