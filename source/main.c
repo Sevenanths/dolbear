@@ -14,6 +14,7 @@
 #include "button_start_png.h"
 
 #include "dinbekbold_ttf.h"
+#include "dinbekbold_png.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +25,7 @@
 #include <gccore.h>
 
 #define GRRLIB_WHITE   0xFFFFFFFF
+#define GRRLIB_BLACK   0x000000FF
 
 #define OBJECT_WIDTH 32
 #define OBJECT_HEIGHT 32
@@ -33,6 +35,8 @@
 #define BEAR_SPEED 6
 #define OBJECT_SPEED 3
 #define NUM_OBJECTS 3
+
+#define FONT_TILESET_WIDTH 25
 
 struct Bear {
 	int x;
@@ -161,6 +165,23 @@ void draw_title(GRRLIB_texImg *bg_background,
 	}
 }
 
+void draw_score(int score, GRRLIB_texImg *fnt_score_tile) {
+	char str_score[32];
+	itoa(score, str_score, 10);
+
+	int score_width = strlen(str_score) * FONT_TILESET_WIDTH;
+
+	// Draw score
+	int score_x = (GC_WIDTH / 2) - (score_width / 2);
+	int score_y = 1;
+
+	GRRLIB_Printf(score_x + 1, score_y + 1, fnt_score_tile, GRRLIB_BLACK, 1, str_score);
+	GRRLIB_Printf(score_x - 1, score_y + 1, fnt_score_tile, GRRLIB_BLACK, 1, str_score);
+	GRRLIB_Printf(score_x - 1, score_y - 1, fnt_score_tile, GRRLIB_BLACK, 1, str_score);
+	GRRLIB_Printf(score_x + 1, score_y - 1, fnt_score_tile, GRRLIB_BLACK, 1, str_score);
+	GRRLIB_Printf(score_x, score_y, fnt_score_tile, GRRLIB_WHITE, 1, str_score);
+}
+
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
     GRRLIB_Init();
@@ -180,6 +201,8 @@ int main(int argc, char **argv) {
     GRRLIB_texImg *bg_game_over = GRRLIB_LoadTexture(game_over_png);
 
     GRRLIB_ttfFont *fnt_score = GRRLIB_LoadTTF(dinbekbold_ttf, dinbekbold_ttf_size);
+    GRRLIB_texImg *fnt_score_tile = GRRLIB_LoadTexture(dinbekbold_png);
+    GRRLIB_InitTileSet(fnt_score_tile, FONT_TILESET_WIDTH, 30, 32);
 
 	struct Game* game = malloc(sizeof(struct Game));
 
@@ -206,6 +229,8 @@ int main(int argc, char **argv) {
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) {
 				game_mode = TITLE;
 			}
+
+			draw_score(score, fnt_score_tile);
         }
         else if (game_mode == GAME) {
         	/*
@@ -370,10 +395,7 @@ int main(int argc, char **argv) {
 				}
 			}
 	
-			wchar_t score_wchar[16];
-	
-			// Draw score
-			//GRRLIB_PrintfTTFW(0, 0, fnt_score, score_wchar, 12, GRRLIB_WHITE);
+			draw_score(score, fnt_score_tile);
 		}
 
         GRRLIB_Render();  // Render the frame buffer to the TV
