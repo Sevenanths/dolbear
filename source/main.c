@@ -113,6 +113,7 @@ void init_game(struct Game *game) {
     // Set bear coordinates to the middle of the screen
     game->bear.x = (GC_WIDTH / 2) - (OBJECT_WIDTH / 2);
     game->bear.y = (GC_HEIGHT / 2) - (OBJECT_HEIGHT / 2);
+    game->bear.direction = random_direction();
 
     /*
 		Objects
