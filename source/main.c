@@ -10,6 +10,8 @@ static GXRModeObj *rmode = NULL;
 
 void *Initialise();
 
+int test = 0;
+
 int main(int argc, char **argv) {
 
 	xfb = Initialise();
@@ -24,6 +26,8 @@ int main(int argc, char **argv) {
 
 		// PAD_ButtonsDown tells us which buttons were pressed in this loop
 		// this is a "one shot" state which will not fire again until the button has been released
+		// Other possibilities: ButtonsHeld and ButtonsUp
+		// first argument = controller number (0 = first controller!)
 		int buttonsDown = PAD_ButtonsDown(0);
 		
 		if( buttonsDown & PAD_BUTTON_A ) {
@@ -32,6 +36,23 @@ int main(int argc, char **argv) {
 
 		if (buttonsDown & PAD_BUTTON_START) {
 			exit(0);
+		}
+
+		// Analog movement
+		if (PAD_StickY(0) > 18) {
+			printf("Joystick moved up.\n");
+		}
+
+		if (PAD_StickY(0) < -18) {
+			printf("Joystick moved down\n");
+		}
+
+		if (PAD_StickX(0) > 18) {
+			printf("Joystick moved right.\n");
+		}
+
+		if (PAD_StickX(0) < -18) {
+			printf("Joystick moved left\n");
 		}
 	}
 
