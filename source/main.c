@@ -246,16 +246,16 @@ int main(int argc, char **argv) {
 				Bear controls
         	*/
 
-        	if (PAD_StickY(0) > 18) {
+        	if (PAD_StickY(0) > 18 || (PAD_ButtonsDown(0) & PAD_BUTTON_UP)) {
 				game->bear.direction = BEAR_UP;
 			}
-			if (PAD_StickY(0) < -18) {
+			if (PAD_StickY(0) < -18 || (PAD_ButtonsDown(0) & PAD_BUTTON_DOWN)) {
 				game->bear.direction = BEAR_DOWN;
 			}
-			if (PAD_StickX(0) > 18) {
+			if (PAD_StickX(0) > 18 || (PAD_ButtonsDown(0) & PAD_BUTTON_RIGHT)) {
 				game->bear.direction = BEAR_RIGHT;
 			}
-			if (PAD_StickX(0) < -18) {
+			if (PAD_StickX(0) < -18 || (PAD_ButtonsDown(0) & PAD_BUTTON_LEFT)) {
 				game->bear.direction = BEAR_LEFT;
 			}
 	
