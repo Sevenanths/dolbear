@@ -20,11 +20,20 @@
 #define GC_WIDTH 640
 #define GC_HEIGHT 480
 
+#define BEAR_SPEED 6
+
 struct Bear {
 	int x;
 	int y;
 	int direction;
 };
+
+enum BearDirection {
+	BEAR_UP = 1,
+	BEAR_DOWN = 2,
+	BEAR_LEFT = 3,
+	BEAR_RIGHT = 4
+}; 
 
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
@@ -51,16 +60,34 @@ int main(int argc, char **argv) {
         if (PAD_ButtonsDown(0) & PAD_BUTTON_START)  break;
 
         if (PAD_StickY(0) > 18) {
-			obj_bear->y--;
+			obj_bear->direction = BEAR_UP;
 		}
 		if (PAD_StickY(0) < -18) {
-			obj_bear->y++;
+			obj_bear->direction = BEAR_DOWN;
 		}
 		if (PAD_StickX(0) > 18) {
-			obj_bear->x++;
+			obj_bear->direction = BEAR_RIGHT;
 		}
 		if (PAD_StickX(0) < -18) {
-			obj_bear->x--;
+			obj_bear->direction = BEAR_LEFT;
+		}
+
+		/*
+			Bear movement
+		*/
+		switch(obj_bear->direction) {
+			case BEAR_UP:
+				obj_bear->y -= BEAR_SPEED;
+				break;
+			case BEAR_DOWN:
+				obj_bear->y += BEAR_SPEED;
+				break;
+			case BEAR_LEFT:
+				obj_bear->x -= BEAR_SPEED;
+				break;
+			case BEAR_RIGHT:
+				obj_bear->x += BEAR_SPEED;
+				break;
 		}
 
         // ---------------------------------------------------------------------
