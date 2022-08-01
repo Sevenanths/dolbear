@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     GRRLIB_texImg *spr_bear = GRRLIB_LoadTexture(bear_png);
     GRRLIB_texImg *bg_background = GRRLIB_LoadTexture(background_png);
 
-    struct Bear *obj_bear = malloc(sizeof(struct bear));
+    struct Bear *obj_bear = malloc(sizeof(struct Bear));
     // Set bear coordinates to the middle of the screen
     obj_bear->x = (GC_WIDTH / 2) - (OBJECT_WIDTH / 2);
     obj_bear->y = (GC_HEIGHT / 2) - (OBJECT_HEIGHT / 2);
