@@ -5,6 +5,8 @@
 #include "background_png.h"
 #include "wall_png.h"
 #include "bear_png.h"
+#include "star_png.h"
+#include "fire_png.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +23,8 @@
 #define GC_HEIGHT 480
 
 #define BEAR_SPEED 6
+#define OBJECT_SPEED 3
+#define NUM_OBJECTS 3
 
 struct Bear {
 	int x;
@@ -33,7 +37,38 @@ enum BearDirection {
 	BEAR_DOWN = 2,
 	BEAR_LEFT = 3,
 	BEAR_RIGHT = 4
-}; 
+};
+
+struct BearObject {
+	int type;
+	int direction;
+	int x;
+	int y;
+};
+
+enum BearObjectDirection {
+	UP_LEFT = 1,
+	UP_RIGHT = 2,
+	DOWN_LEFT = 3,
+	DOWN_RIGHT = 4
+};
+
+enum BearObjectTypes {
+	FIRE = 1,
+	STAR = 2
+};
+
+int random_integer(int minimum_number, int max_number) {
+	return rand() % (max_number + 1 - minimum_number) + minimum_number;
+}
+
+int random_coordinate_x() {
+	return random_integer(OBJECT_WIDTH, GC_WIDTH - OBJECT_WIDTH);
+}
+
+int random_coordinate_y() {
+	return random_integer(OBJECT_HEIGHT, GC_HEIGHT - OBJECT_HEIGHT);
+}
 
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
@@ -44,12 +79,40 @@ int main(int argc, char **argv) {
 
     GRRLIB_texImg *spr_wall = GRRLIB_LoadTexture(wall_png);
     GRRLIB_texImg *spr_bear = GRRLIB_LoadTexture(bear_png);
+    GRRLIB_texImg *spr_fire = GRRLIB_LoadTexture(fire_png);
+    GRRLIB_texImg *spr_star = GRRLIB_LoadTexture(star_png);
     GRRLIB_texImg *bg_background = GRRLIB_LoadTexture(background_png);
 
+    /* 
+    	Bear
+    */
     struct Bear *obj_bear = malloc(sizeof(struct Bear));
     // Set bear coordinates to the middle of the screen
     obj_bear->x = (GC_WIDTH / 2) - (OBJECT_WIDTH / 2);
     obj_bear->y = (GC_HEIGHT / 2) - (OBJECT_HEIGHT / 2);
+
+    /*
+		Objects
+    */
+    struct BearObject objects[NUM_OBJECTS * 2];
+    /* Set the first NUM_OBJECTS objects to fire */
+    for (int i = 0; i < NUM_OBJECTS; ++i)
+    {
+    	objects[i].type = FIRE;
+    }
+    /* Set the first NUM_OBJECTS objects to fire */
+    for (int i = NUM_OBJECTS; i < 2 * NUM_OBJECTS; ++i)
+    {
+    	objects[i].type = STAR;
+    }
+
+    /* Generate random coordinates and directions for all objects */
+    for (int i = 0; i < NUM_OBJECTS * 2; ++i)
+    {
+    	objects[i].x = random_coordinate_x();
+    	objects[i].y = random_coordinate_y();
+    	objects[i].direction = random_integer(1, 4);
+    }
 
     // Loop forever
     while(1) {
@@ -107,6 +170,56 @@ int main(int argc, char **argv) {
 				break;
 		}
 
+		/*
+			Object movement
+		*/
+		for (int i = 0; i < NUM_OBJECTS * 2; ++i)
+		{
+			// Left wall collision
+			if (objects[i].x - OBJECT_SPEED <= OBJECT_WIDTH) {
+				if (objects[i].direction == UP_LEFT) {
+					objects[i].direction = UP_RIGHT;
+				} else if (objects[i].direction == DOWN_LEFT) {
+					objects[i].direction = DOWN_RIGHT;
+				}
+			// Right wall collision
+			} else if (objects[i].x + OBJECT_SPEED >= GC_WIDTH - (OBJECT_WIDTH * 2)) {
+				if (objects[i].direction == UP_RIGHT) {
+					objects[i].direction = UP_LEFT;
+				} else if (objects[i].direction == DOWN_RIGHT) {
+					objects[i].direction = DOWN_LEFT;
+				}
+			// Top wall collision
+			} else if (objects[i].y - OBJECT_SPEED <= OBJECT_HEIGHT) {
+				if (objects[i].direction == UP_LEFT) {
+					objects[i].direction = DOWN_LEFT;
+				} else if (objects[i].direction == UP_RIGHT) {
+					objects[i].direction = DOWN_RIGHT;
+				}
+			// Bottom wall
+			} else if (objects[i].y + OBJECT_SPEED >= GC_HEIGHT - (OBJECT_HEIGHT * 2)) {
+				if (objects[i].direction == DOWN_LEFT) {
+					objects[i].direction = UP_LEFT;
+				} else if (objects[i].direction == DOWN_RIGHT) {
+					objects[i].direction = UP_RIGHT;
+				}
+			}
+
+			if (objects[i].direction == UP_LEFT) {
+				objects[i].x -= OBJECT_SPEED;
+				objects[i].y -= OBJECT_SPEED;
+			} else if (objects[i].direction == UP_RIGHT) {
+				objects[i].x += OBJECT_SPEED;
+				objects[i].y -= OBJECT_SPEED;
+			} else if (objects[i].direction == DOWN_LEFT) {
+				objects[i].x -= OBJECT_SPEED;
+				objects[i].y += OBJECT_SPEED;
+			} else if (objects[i].direction == DOWN_RIGHT) {
+				objects[i].x += OBJECT_SPEED;
+				objects[i].y += OBJECT_SPEED;
+			}
+		}
+
         // ---------------------------------------------------------------------
         // Place your drawing code here
         // ---------------------------------------------------------------------
@@ -136,6 +249,16 @@ int main(int argc, char **argv) {
 
 		// Draw bear
 		GRRLIB_DrawImg(obj_bear->x, obj_bear->y, spr_bear, 0, 1, 1, GRRLIB_WHITE);
+
+		// Draw objects
+		for (int i = 0; i < NUM_OBJECTS * 2; ++i)
+		{
+			if (objects[i].type == FIRE) {
+				GRRLIB_DrawImg(objects[i].x, objects[i].y, spr_fire, 0, 1, 1, GRRLIB_WHITE);
+			} else if (objects[i].type == STAR) {
+				GRRLIB_DrawImg(objects[i].x, objects[i].y, spr_star, 0, 1, 1, GRRLIB_WHITE);
+			}
+		}
 
         GRRLIB_Render();  // Render the frame buffer to the TV
     }
