@@ -4,6 +4,7 @@
 
 #include "background_png.h"
 #include "wall_png.h"
+#include "bear_png.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,8 +20,11 @@
 #define GC_WIDTH 640
 #define GC_HEIGHT 480
 
-int cursor_x = 300;
-int cursor_y = 250;
+struct Bear {
+	int x;
+	int y;
+	int direction;
+};
 
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
@@ -30,7 +34,13 @@ int main(int argc, char **argv) {
     PAD_Init();
 
     GRRLIB_texImg *spr_wall = GRRLIB_LoadTexture(wall_png);
+    GRRLIB_texImg *spr_bear = GRRLIB_LoadTexture(bear_png);
     GRRLIB_texImg *bg_background = GRRLIB_LoadTexture(background_png);
+
+    struct Bear *obj_bear = malloc(sizeof(struct bear));
+    // Set bear coordinates to the middle of the screen
+    obj_bear->x = (GC_WIDTH / 2) - (OBJECT_WIDTH / 2);
+    obj_bear->y = (GC_HEIGHT / 2) - (OBJECT_HEIGHT / 2);
 
     // Loop forever
     while(1) {
@@ -41,22 +51,25 @@ int main(int argc, char **argv) {
         if (PAD_ButtonsDown(0) & PAD_BUTTON_START)  break;
 
         if (PAD_StickY(0) > 18) {
-			cursor_y--;
+			obj_bear->y--;
 		}
 		if (PAD_StickY(0) < -18) {
-			cursor_y++;
+			obj_bear->y++;
 		}
 		if (PAD_StickX(0) > 18) {
-			cursor_x++;
+			obj_bear->x++;
 		}
 		if (PAD_StickX(0) < -18) {
-			cursor_x--;
+			obj_bear->x--;
 		}
 
         // ---------------------------------------------------------------------
         // Place your drawing code here
         // ---------------------------------------------------------------------
 
+		/*
+			Draw window
+		*/
 		GRRLIB_DrawImg(0, 0, bg_background, 0, 1, 1, GRRLIB_WHITE);
 
 		// Horizontal walls
@@ -77,7 +90,8 @@ int main(int argc, char **argv) {
 			GRRLIB_DrawImg(GC_WIDTH - OBJECT_WIDTH, y * OBJECT_HEIGHT, spr_wall, 0, 1, 1, GRRLIB_WHITE);
 		}
 
-        // Vertical walls
+		// Draw bear
+		GRRLIB_DrawImg(obj_bear->x, obj_bear->y, spr_bear, 0, 1, 1, GRRLIB_WHITE);
 
         GRRLIB_Render();  // Render the frame buffer to the TV
     }
