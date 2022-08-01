@@ -70,6 +70,10 @@ int random_coordinate_y() {
 	return random_integer(OBJECT_HEIGHT, GC_HEIGHT - OBJECT_HEIGHT);
 }
 
+int random_direction() {
+	return random_integer(1, 4);
+}
+
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
     GRRLIB_Init();
@@ -111,7 +115,7 @@ int main(int argc, char **argv) {
     {
     	objects[i].x = random_coordinate_x();
     	objects[i].y = random_coordinate_y();
-    	objects[i].direction = random_integer(1, 4);
+    	objects[i].direction = random_direction();
     }
 
     // Loop forever
@@ -217,6 +221,24 @@ int main(int argc, char **argv) {
 			} else if (objects[i].direction == DOWN_RIGHT) {
 				objects[i].x += OBJECT_SPEED;
 				objects[i].y += OBJECT_SPEED;
+			}
+		}
+
+		/* 
+			Bear and object collision
+		*/
+		for (int i = 0; i < NUM_OBJECTS * 2; ++i)
+		{
+			// All hail the mighty bounding box calculation 
+			// I ported this from my LUA code in 2015! It might just work!
+			if (obj_bear->x < objects[i].x + OBJECT_WIDTH &&
+				obj_bear->x + OBJECT_WIDTH > objects[i].x &&
+				obj_bear->y < objects[i].y + OBJECT_HEIGHT &&
+				OBJECT_HEIGHT + obj_bear->y > objects[i].y) {
+
+				objects[i].x = random_coordinate_x();
+				objects[i].y = random_coordinate_y();
+				objects[i].direction = random_direction();
 			}
 		}
 
