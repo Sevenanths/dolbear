@@ -32,9 +32,9 @@
 #include <asndlib.h>
 #include "oggplayer.h"
 
-#ifdef __wii__
+//#ifdef __wii__
 #include <wiiuse/wpad.h>
-#endif
+//#endif
 
 #define GRRLIB_WHITE   0xFFFFFFFF
 #define GRRLIB_BLACK   0x000000FF
@@ -215,7 +215,7 @@ void rumble()
     	#ifdef __wii__
         WPAD_Rumble(WPAD_CHAN_0, 0);
         #elif __gamecube__
-
+    	PAD_ControlMotor(0, PAD_MOTOR_STOP);
         #endif
 
         tps = ticks_to_millisecs(gettime());
@@ -517,7 +517,8 @@ int main(int argc, char **argv) {
     					rumbling = true;
     				}
 					#elif __gamecube__
-
+    				PAD_ControlMotor(0, PAD_MOTOR_RUMBLE);
+    				rumbling = true;
 					#endif
 	
 					game->objects[i].x = random_coordinate_x();
