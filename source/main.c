@@ -11,7 +11,11 @@
 #include "star_png.h"
 #include "fire_png.h"
 
+#ifdef __gamecube__
 #include "button_start_png.h"
+#elif __wii__
+#include "button_plus_png.h"
+#endif
 
 #include "dinbekbold_ttf.h"
 #include "dinbekbold_png.h"
@@ -27,6 +31,10 @@
 #include <gccore.h>
 #include <asndlib.h>
 #include "oggplayer.h"
+
+#ifdef __wii__
+#include <wiiuse/wpad.h>
+#endif
 
 #define GRRLIB_WHITE   0xFFFFFFFF
 #define GRRLIB_BLACK   0x000000FF
@@ -192,11 +200,23 @@ void draw_score(int score, GRRLIB_texImg *fnt_score_tile) {
 	GRRLIB_Printf(score_x, score_y, fnt_score_tile, GRRLIB_WHITE, 1, str_score);
 }
 
+void start_game(struct Game *game) {
+	srand(gettime());
+	init_game(game);
+	game_mode = GAME;
+}
+
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
     GRRLIB_Init();
 
-    // Initialise the Wiimotes
+    #ifdef __wii__
+	// Initialise the Wiimotes
+	WPAD_Init();
+	#endif
+
+    // Initialise GameCube controller input
+    // I allow GameCube input for the Wii too, which is why this isn't in its own ifdef
     PAD_Init();
 
 	// Initialise the audio subsystem
@@ -208,7 +228,11 @@ int main(int argc, char **argv) {
     GRRLIB_texImg *spr_fire = GRRLIB_LoadTexture(fire_png);
     GRRLIB_texImg *spr_star = GRRLIB_LoadTexture(star_png);
 
+    #ifdef __gamecube__
     GRRLIB_texImg *spr_button_start = GRRLIB_LoadTexture(button_start_png);
+    #elif __wii__
+    GRRLIB_texImg *spr_button_start = GRRLIB_LoadTexture(button_plus_png);
+    #endif
 
     GRRLIB_texImg *bg_background = GRRLIB_LoadTexture(background_png);
     GRRLIB_texImg *bg_title = GRRLIB_LoadTexture(title_png);
@@ -231,23 +255,42 @@ int main(int argc, char **argv) {
 
         PAD_ScanPads();  // Scan for GameCube controller input
 
+        #ifdef __wii__
+        WPAD_ScanPads();  // Scan for Wii remote input
+        #endif
+
+        #ifdef __gamecube__
+        char* button_prompt = "Press START";
+        #elif __wii__
+        char* button_prompt = "Press PLUS";
+        #endif
+
         if (game_mode == TITLE) {
-			draw_title(bg_background, spr_button_start, bg_title, fnt_score, "Press START");
+			draw_title(bg_background, spr_button_start, bg_title, fnt_score, button_prompt);
 
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) {
-				srand(gettime());
-				init_game(game);
-				game_mode = GAME;
+				start_game(game);
 			}
+
+			#ifdef __wii__
+			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_PLUS) {
+				start_game(game);
+			}
+			#endif
 
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_X) break;
+
+			#ifdef __wii__
+			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME) break;
+			#endif
         }
         else if (game_mode == GAME_OVER) {
-			draw_title(bg_background, spr_button_start, bg_game_over, fnt_score, "Press START");
+			draw_title(bg_background, spr_button_start, bg_game_over, fnt_score, button_prompt);
 
-			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) {
-				game_mode = TITLE;
-			}
+			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) game_mode = TITLE;
+			#ifdef __wii__
+			if (WPAD_ButtonsDown(0) & PAD_BUTTON_START) game_mode = TITLE;
+			#endif
 
 			draw_score(score, fnt_score_tile);
         }
@@ -268,6 +311,43 @@ int main(int argc, char **argv) {
 			if (PAD_StickX(0) < -18 || (PAD_ButtonsDown(0) & PAD_BUTTON_LEFT)) {
 				game->bear.direction = BEAR_LEFT;
 			}
+
+			#ifdef __wii__
+			expansion_t e;
+			WPAD_Expansion(0, &e);
+
+			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_RIGHT) {
+				game->bear.direction = BEAR_UP;
+			}
+			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_LEFT) {
+				game->bear.direction = BEAR_DOWN;
+			}
+			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_DOWN) {
+				game->bear.direction = BEAR_RIGHT;
+			}
+			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_UP) {
+				game->bear.direction = BEAR_LEFT;
+			}
+
+			if(e.type == WPAD_EXP_NUNCHUK)
+			{
+    			int nx = e.nunchuk.js.pos.x - e.nunchuk.js.center.x;
+				int ny = e.nunchuk.js.pos.y - e.nunchuk.js.center.y;
+
+				if (ny > 18) {
+					game->bear.direction = BEAR_UP;
+				}
+				if (ny < -18) {
+					game->bear.direction = BEAR_DOWN;
+				}
+				if (nx > 18) {
+					game->bear.direction = BEAR_RIGHT;
+				}
+				if (nx < -18) {
+					game->bear.direction = BEAR_LEFT;
+				}
+			}
+			#endif
 	
 			/* 
 				Bear collision (walls)
