@@ -112,6 +112,7 @@ int score = 0;
 int game_mode = TITLE;
 int flicker_timer = 0;
 bool show_button_prompt = true;
+bool rumbling = false;
 
 void init_game(struct Game *game) {
 	/* 
@@ -206,6 +207,23 @@ void start_game(struct Game *game) {
 	game_mode = GAME;
 }
 
+void rumble()
+{
+    static int tps=0;
+    if (rumbling && ticks_to_millisecs(gettime())-tps>=250)
+    {
+    	#ifdef __wii__
+        WPAD_Rumble(WPAD_CHAN_0, 0);
+        #elif __gamecube__
+
+        #endif
+
+        tps = ticks_to_millisecs(gettime());
+        rumbling = false;
+    }
+
+}
+
 int main(int argc, char **argv) {
     // Initialise the Graphics & Video subsystem
     GRRLIB_Init();
@@ -250,6 +268,12 @@ int main(int argc, char **argv) {
 
     PlayOgg(bg_ogg, bg_ogg_size, 0, OGG_INFINITE_TIME);
 
+    #ifdef __gamecube__
+    char* button_prompt = "Press START";
+    #elif __wii__
+    char* button_prompt = "Press PLUS";
+    #endif
+
     // Loop forever
     while(1) {
 
@@ -257,13 +281,15 @@ int main(int argc, char **argv) {
 
         #ifdef __wii__
         WPAD_ScanPads();  // Scan for Wii remote input
+
+        // Scan for Wii remote extensions
+		expansion_t e;
+		WPAD_Expansion(0, &e);
         #endif
 
-        #ifdef __gamecube__
-        char* button_prompt = "Press START";
-        #elif __wii__
-        char* button_prompt = "Press PLUS";
-        #endif
+        if (rumbling) {
+        	rumble();
+        }
 
         if (game_mode == TITLE) {
 			draw_title(bg_background, spr_button_start, bg_title, fnt_score, button_prompt);
@@ -272,24 +298,39 @@ int main(int argc, char **argv) {
 				start_game(game);
 			}
 
-			#ifdef __wii__
-			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_PLUS) {
-				start_game(game);
-			}
-			#endif
-
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_X) break;
 
 			#ifdef __wii__
-			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME) break;
+			// If Classic Controller
+			if (e.type == WPAD_EXP_CLASSIC) {
+				if (WPAD_ButtonsDown(0) & WPAD_CLASSIC_BUTTON_HOME) break;
+	
+				if (WPAD_ButtonsDown(0) & WPAD_CLASSIC_BUTTON_PLUS) {
+					start_game(game);
+				}
+			// If no Classic Controller
+			} else {
+				if (WPAD_ButtonsDown(0) & WPAD_BUTTON_HOME) break;
+	
+				if (WPAD_ButtonsDown(0) & WPAD_BUTTON_PLUS) {
+					start_game(game);
+				}
+			}
 			#endif
         }
         else if (game_mode == GAME_OVER) {
 			draw_title(bg_background, spr_button_start, bg_game_over, fnt_score, button_prompt);
 
 			if (PAD_ButtonsDown(0) & PAD_BUTTON_START) game_mode = TITLE;
+
 			#ifdef __wii__
-			if (WPAD_ButtonsDown(0) & PAD_BUTTON_START) game_mode = TITLE;
+			// If Classic Controller
+			if (e.type == WPAD_EXP_CLASSIC) {
+				if (WPAD_ButtonsDown(0) & WPAD_CLASSIC_BUTTON_PLUS) game_mode = TITLE;
+			// If no Classic Controller
+			} else {
+				if (WPAD_ButtonsDown(0) & WPAD_BUTTON_PLUS) game_mode = TITLE;	
+			}
 			#endif
 
 			draw_score(score, fnt_score_tile);
@@ -313,26 +354,21 @@ int main(int argc, char **argv) {
 			}
 
 			#ifdef __wii__
-			expansion_t e;
-			WPAD_Expansion(0, &e);
-
-			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_RIGHT) {
-				game->bear.direction = BEAR_UP;
-			}
-			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_LEFT) {
-				game->bear.direction = BEAR_DOWN;
-			}
-			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_DOWN) {
-				game->bear.direction = BEAR_RIGHT;
-			}
-			if (WPAD_ButtonsDown(0) & WPAD_BUTTON_UP) {
-				game->bear.direction = BEAR_LEFT;
-			}
-
-			if(e.type == WPAD_EXP_NUNCHUK)
+			if(e.type == WPAD_EXP_NUNCHUK || e.type == WPAD_EXP_CLASSIC)
 			{
-    			int nx = e.nunchuk.js.pos.x - e.nunchuk.js.center.x;
-				int ny = e.nunchuk.js.pos.y - e.nunchuk.js.center.y;
+				int nx;
+				int ny;
+
+				// Analog movement
+				if (e.type == WPAD_EXP_NUNCHUK) {
+					// Nunchuk movement
+    				nx = e.nunchuk.js.pos.x - e.nunchuk.js.center.x;
+					ny = e.nunchuk.js.pos.y - e.nunchuk.js.center.y;
+				} else if (e.type == WPAD_EXP_CLASSIC) {
+					// Classic controller movement
+    				nx = e.classic.ljs.pos.x - e.classic.ljs.center.x;
+					ny = e.classic.ljs.pos.y - e.classic.ljs.center.y;
+				}
 
 				if (ny > 18) {
 					game->bear.direction = BEAR_UP;
@@ -344,6 +380,37 @@ int main(int argc, char **argv) {
 					game->bear.direction = BEAR_RIGHT;
 				}
 				if (nx < -18) {
+					game->bear.direction = BEAR_LEFT;
+				}
+
+				// Digital movement
+				if (e.type == WPAD_EXP_CLASSIC) {
+					// Classic Controller movement
+					if (WPAD_ButtonsDown(0) & WPAD_CLASSIC_BUTTON_UP) {
+						game->bear.direction = BEAR_UP;
+					}
+					if (WPAD_ButtonsDown(0) & WPAD_CLASSIC_BUTTON_DOWN) {
+						game->bear.direction = BEAR_DOWN;
+					}
+					if (WPAD_ButtonsDown(0) & WPAD_CLASSIC_BUTTON_RIGHT) {
+						game->bear.direction = BEAR_RIGHT;
+					}
+					if (WPAD_ButtonsDown(0) & WPAD_CLASSIC_BUTTON_LEFT) {
+						game->bear.direction = BEAR_LEFT;
+					}
+				}
+			} else {
+				// Sideways remote movement
+				if (WPAD_ButtonsDown(0) & WPAD_BUTTON_RIGHT) {
+					game->bear.direction = BEAR_UP;
+				}
+				if (WPAD_ButtonsDown(0) & WPAD_BUTTON_LEFT) {
+					game->bear.direction = BEAR_DOWN;
+				}
+				if (WPAD_ButtonsDown(0) & WPAD_BUTTON_DOWN) {
+					game->bear.direction = BEAR_RIGHT;
+				}
+				if (WPAD_ButtonsDown(0) & WPAD_BUTTON_UP) {
 					game->bear.direction = BEAR_LEFT;
 				}
 			}
@@ -441,6 +508,17 @@ int main(int argc, char **argv) {
 					game->bear.x + OBJECT_WIDTH > game->objects[i].x &&
 					game->bear.y < game->objects[i].y + OBJECT_HEIGHT &&
 					OBJECT_HEIGHT + game->bear.y > game->objects[i].y) {
+
+					// Rumble (because why not?)
+					#ifdef __wii__
+					// Only rumble if no Classic Controller is attached
+					if (e.type != WPAD_EXP_CLASSIC) {
+						WPAD_Rumble(WPAD_CHAN_0, 1);
+    					rumbling = true;
+    				}
+					#elif __gamecube__
+
+					#endif
 	
 					game->objects[i].x = random_coordinate_x();
 					game->objects[i].y = random_coordinate_y();
