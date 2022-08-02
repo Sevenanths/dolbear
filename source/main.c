@@ -113,6 +113,8 @@ int game_mode = TITLE;
 int flicker_timer = 0;
 bool show_button_prompt = true;
 bool rumbling = false;
+int rumble_time = 0;
+int tps = 0;
 
 void init_game(struct Game *game) {
 	/* 
@@ -209,8 +211,8 @@ void start_game(struct Game *game) {
 
 void rumble()
 {
-    static int tps=0;
-    if (rumbling && ticks_to_millisecs(gettime())-tps>=250)
+    //static int tps=0;
+    if (rumbling && ticks_to_secs(gettime()) - tps >= rumble_time)
     {
     	#ifdef __wii__
         WPAD_Rumble(WPAD_CHAN_0, 0);
@@ -218,7 +220,6 @@ void rumble()
     	PAD_ControlMotor(0, PAD_MOTOR_STOP);
         #endif
 
-        tps = ticks_to_millisecs(gettime());
         rumbling = false;
     }
 
@@ -510,6 +511,7 @@ int main(int argc, char **argv) {
 					OBJECT_HEIGHT + game->bear.y > game->objects[i].y) {
 
 					// Rumble (because why not?)
+					tps=ticks_to_secs(gettime());
 					#ifdef __wii__
 					// Only rumble if no Classic Controller is attached
 					if (e.type != WPAD_EXP_CLASSIC) {
@@ -526,8 +528,10 @@ int main(int argc, char **argv) {
 					game->objects[i].direction = random_direction();
 	
 					if (game->objects[i].type == FIRE) {
+						rumble_time = 1;
 						game_mode = GAME_OVER;
 					} else if (game->objects[i].type == STAR) {
+						rumble_time = 0.25;
 						score += 1000;
 					}
 				}
